@@ -6,13 +6,14 @@
 #include <cassert>
 #include <tuple>
 #include <utility>
+#include <sstream>
 
 namespace matrix_service {
 
 namespace {
 
 using ProvidedProcedures = std::tuple<
-    /* Known procesures, аналог services в grpc */
+    /* Known procedures, аналог services в grpc */
     std::nullptr_t, // Все варианты в proto3 начинаются с 0, поэтому номера процедур начинаем с 1
     std::pair<
         matrix_service::MatrixOpRequest, // RequestT
@@ -51,7 +52,11 @@ bool TryRunProcedure(const ProcedureData& request, std::string& response)
     using RequestT = typename std::tuple_element_t<Idx, ProvidedProcedures>::first_type;
     RequestT request_proto;
     if (!request_proto.ParseFromArray(request.payload().data(), request.payload().size())) [[unlikely]]
-        throw ProcedureError(std::format("Corrupted protobuf for procedure request with id {}!", Idx));
+    {
+        std::stringstream ss;
+        ss << "Corrupted protobuf for procedure request with id " << Idx << "!";
+        throw ProcedureError(ss.str());
+    }
 
     static_assert(std::is_same_v<decltype(RunProcedure(request_proto)),
                                  typename std::tuple_element_t<Idx, ProvidedProcedures>::second_type>);
@@ -72,7 +77,12 @@ std::pair<std::string, bool> ExecuteProcedure(std::string_view request)
     {
         ProcedureData request_proto;
         if (!request_proto.ParseFromArray(request.data(), request.size())) [[unlikely]]
-            throw ProcedureError("Corrupted matrix_service::Procedure protobuf!");
+        {
+            // Используем std::stringstream для формирования строки ошибки
+            std::stringstream ss;
+            ss << "Corrupted matrix_service::Procedure protobuf!";
+            throw ProcedureError(ss.str());
+        }
 
         std::string response;
         auto try_run_procedures =
@@ -80,7 +90,11 @@ std::pair<std::string, bool> ExecuteProcedure(std::string_view request)
             {
                 bool was_executed = ( false || ... || TryRunProcedure<Ids + 1>(request_proto, response) );
                 if (!was_executed) [[unlikely]]
-                    throw ProcedureError(std::format("Unknown ProcedureId: {}", (int) request_proto.proc_id()));
+                {
+                    std::stringstream ss;
+                    ss << "Unknown ProcedureId: " << (int) request_proto.proc_id();
+                    throw ProcedureError(ss.str());
+                }
             };
 
         try_run_procedures(request_proto, response,

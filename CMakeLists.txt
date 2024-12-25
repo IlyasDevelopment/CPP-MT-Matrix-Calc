@@ -27,7 +27,8 @@ add_subdirectory(third-party/cxxopts)
 
 # Далее наши проекты - собираем со строгими опциями
 # FIXME: missing-requires -- иначе протобуф не собирается
-add_compile_options(-Wall -Wextra -Werror -Wno-error=missing-requires)
+#add_compile_options(-Wall -Wextra -Werror -Wno-error=missing-requires)
+add_compile_options(-Wall -Wextra -Werror)
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
 # 2. Библиотеки

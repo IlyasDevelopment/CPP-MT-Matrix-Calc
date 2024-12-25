@@ -37,7 +37,7 @@ public:
     virtual ~Server() {}
 
     virtual void Run() = 0; // Должна делать Join(), если многопоточна
-    void Stop()
+    virtual void Stop()
     {
         stop_required_ = true;
         OnStop();

@@ -1,15 +1,14 @@
 #include "server.hpp"
 #include "st_blocking_server.hpp"
+#include "mt_blocking_server.hpp"
 
 #include "cxxopts.hpp"
 
 #include <signal.h>
-
 #include <cassert>
 #include <csignal>
 #include <memory>
 #include <iostream>
-
 
 // Чтобы ловить сигналы, нужен глобальный обработчик
 std::unique_ptr<matrix_service::Server> g_server;
@@ -20,13 +19,12 @@ void StopHandler(int)
         g_server->Stop();
 }
 
-
 int main(int argc, char* argv[])
 {
     using namespace std::string_literals;
 
     static constexpr int ArgErrorExitCode = 1;
-    constexpr std::string_view AllowedServerType = "st_blocking";
+    constexpr std::string_view AllowedServerTypes = "st_blocking, mt_blocking";
 
     matrix_service::Server::Config conf;
 
@@ -34,10 +32,18 @@ int main(int argc, char* argv[])
     cxxopts::Options opts(argv[0], "- options for matrix server");
     opts.add_options()
         ("h,help", "show help")
-        ("s,server_type", "type of the server, allowed: "s + AllowedServerType.data(), cxxopts::value<std::string>(server_type))
-        ("a,address", "the listening address", cxxopts::value<std::string>(conf.listening_address)->default_value("0.0.0.0"s))
-        ("p,port", "the port for app", cxxopts::value<std::uint16_t>(conf.port)->default_value("8080"s))
-        ("k,keepalive", "should server support keepalive mode", cxxopts::value<bool>(conf.keepalive)->default_value("false"s));
+        ("s,server_type",
+            "type of the server, allowed: "s + std::string(AllowedServerTypes),
+            cxxopts::value<std::string>(server_type))
+        ("a,address",
+            "the listening address",
+            cxxopts::value<std::string>(conf.listening_address)->default_value("0.0.0.0"s))
+        ("p,port",
+            "the port for app",
+            cxxopts::value<std::uint16_t>(conf.port)->default_value("8080"s))
+        ("k,keepalive",
+            "should server support keepalive mode",
+            cxxopts::value<bool>(conf.keepalive)->default_value("false"s));
 
     try
     {
@@ -56,10 +62,17 @@ int main(int argc, char* argv[])
     }
 
     if (server_type == "st_blocking")
+    {
         g_server = std::make_unique<matrix_service::StBlockingServer>(std::move(conf));
+    }
+    else if (server_type == "mt_blocking")
+    {
+        g_server = std::make_unique<matrix_service::MtBlockingServer>(std::move(conf));
+    }
     else
     {
-        std::cerr << "Unknown type of server: '" << server_type << "', allowed: " << AllowedServerType << std::endl;
+        std::cerr << "Unknown type of server: '" << server_type
+                  << "', allowed: " << AllowedServerTypes << std::endl;
         return ArgErrorExitCode;
     }
 

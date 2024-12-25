@@ -7,8 +7,11 @@ Matrix operator*(const Matrix& first, const Matrix& another)
 {
     if (first.columns_ != another.rows_) [[unlikely]]
     {
-        throw MatrixCalcError(std::format("Cannot multiply matrices: ({} x {}) * ({} x {}): c1 != r2",
-                                              first.rows_, first.columns_, another.rows_, another.columns_));
+        std::stringstream ss;
+        ss << "Cannot multiply matrices: (" << first.rows_ << " x " << first.columns_ << ") * ("
+           << another.rows_ << " x " << another.columns_ << "): c1 != r2";
+
+        throw MatrixCalcError(ss.str());
     }
 
     Matrix result(first.rows_, another.columns_);

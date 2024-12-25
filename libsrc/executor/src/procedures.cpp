@@ -3,7 +3,9 @@
 #include "matrix_op/matrix.hpp"
 #include "matrix_op/matrix_exception.hpp"
 
-#include <format>
+#include <stdexcept>
+#include <sstream>
+
 
 namespace matrix_service {
 
@@ -11,8 +13,12 @@ namespace {
 
 matrix_op::Matrix FromProto(const Matrix& m)
 {
-    if (m.content().size() != (int) (m.rows() * m.columns())) [[unlikely]]
-        throw ProcedureError(std::format("Invalid matrix content size: {} != {} x {}", m.content_size(), m.rows(), m.columns()));
+    if (m.content().size() != (int)(m.rows() * m.columns())) [[unlikely]]
+    {
+        std::stringstream ss;
+        ss << "Invalid matrix content size: " << m.content_size() << " != " << m.rows() << " x " << m.columns();
+        throw ProcedureError(ss.str());
+    }
 
     return matrix_op::Matrix(m.rows(), m.columns(), m.content().data(), m.content().data() + m.content().size());
 }
@@ -23,9 +29,18 @@ matrix_op::Matrix FromProto(const Matrix& m)
 MatrixOpResponse RunProcedure(const MatrixOpRequest& request)
 {
     if (request.op() != MatrixOpRequest::MUL) [[unlikely]]
-        throw ProcedureError(std::format("Unsupported operation in MatrixOpRequest: {}", (int) request.op()));
+    {
+        std::stringstream ss;
+        ss << "Unsupported operation in MatrixOpRequest: " << (int) request.op();
+        throw ProcedureError(ss.str());
+    }
+
     if (request.args_size() != 2) [[unlikely]]
-        throw ProcedureError(std::format("Invalid count of args in MatrixOpRequest: {}", request.args_size()));
+    {
+        std::stringstream ss;
+        ss << "Invalid count of args in MatrixOpRequest: " << request.args_size();
+        throw ProcedureError(ss.str());
+    }
 
     MatrixOpResponse resp;
     try

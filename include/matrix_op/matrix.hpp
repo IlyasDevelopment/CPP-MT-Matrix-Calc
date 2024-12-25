@@ -4,9 +4,10 @@
 
 #include <cassert>
 #include <cstdint>
-#include <format>
 #include <span>
 #include <vector>
+#include <stdexcept>
+#include <sstream>
 
 namespace matrix_op {
 
@@ -19,7 +20,11 @@ public:
           matrix_(begin, end)
     {
         if (matrix_.size() != rows_ * columns_ || matrix_.empty()) [[unlikely]]
-            throw MatrixCalcError(std::format("Data size {} != {} (r) x {} (c) <or> empty matrix", matrix_.size(), rows_, columns_));
+        {
+            std::stringstream ss;
+            ss << "Data size " << matrix_.size() << " != " << rows_ << " (r) x " << columns_ << " (c) <or> empty matrix";
+            throw MatrixCalcError(ss.str());
+        }
     }
 
     Matrix(const Matrix&) = default;

@@ -1,31 +1,25 @@
 #pragma once
 
-#include <errno.h>
-#include <string.h>
-
-#include <format>
+#include <cerrno>
+#include <cstring>
 #include <stdexcept>
+#include <sstream>
 
 namespace matrix_service {
 
-void RaiseLinuxCallError(std::size_t line, const char* file, const char* call_str, const char* comment)
-{
-    throw std::runtime_error(std::format(
-            "System call '{}' on line {} in file {} failed (== -1). Errno = {} ({}). Comment: {}",
-            call_str, line, file,
-            errno, strerror(errno),
-            comment
-    ));
-}
+    inline void RaiseLinuxCallError(std::size_t line, const char* file, const char* call_str, const char* comment) {
+        std::stringstream ss;
+        ss << "System call '" << call_str << "' on line " << line << " in file " << file
+           << " failed (== -1). Errno = " << errno << " (" << strerror(errno) << "). Comment: " << comment;
+        throw std::runtime_error(ss.str());
+    }
 
-void RaiseOnLinuxCallError(std::size_t line, const char* file, int call_result, const char* call_str, const char* comment)
-{
-    if (call_result == -1) [[unlikely]]
-        RaiseLinuxCallError(line, file, call_str, comment);
-}
+    inline void RaiseOnLinuxCallError(std::size_t line, const char* file, int call_result, const char* call_str, const char* comment) {
+        if (call_result == -1) [[unlikely]]
+            RaiseLinuxCallError(line, file, call_str, comment);
+    }
 
-#define VALIDATE_LINUX_CALL(X) RaiseOnLinuxCallError(__LINE__, __FILE__, (X), #X, "<nothing>")
-#define VALIDATE_LINUX_CALL_COMMENT(X, comment) RaiseOnLinuxCallError(__LINE__, __FILE__, (X), #X, comment)
+    #define VALIDATE_LINUX_CALL(X) RaiseOnLinuxCallError(__LINE__, __FILE__, (X), #X, "<nothing>")
+    #define VALIDATE_LINUX_CALL_COMMENT(X, comment) RaiseOnLinuxCallError(__LINE__, __FILE__, (X), #X, comment)
 
 } // namespace matrix_service
-
